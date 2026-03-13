@@ -3,3 +3,44 @@ This repository contains all the lab stuff
 
 test
 test
+
+
+his repository contains all the lab stuff
+
+
+Lab1
+pwd
+docker --version
+docker pull mjw263/cits4407_2024
+docker run -it --mount type=bind,source="/workspaces/CITS4407",target=/home/stud/perm mjw263/cits4407_2024:v1
+docker run -it --mount type=bind,source="/workspaces/CITS4407",target=/home/stud/perm mjw263/cits4407
+
+
+
+sudo chown -R $(whoami):$(whoami) /workspaces/CITS4407
+git add .
+git commit -m 
+
+
+Lab2 
+
+cd /lab
+cd ~
+cd perm
+mkdir lab2 
+cd lab2 
+cp /lab/week2/* /home/stud/perm/lab2 
+
+/usr/games/cowsay "MOO" > lol.txt
+
+
+wc Alice_in_Wonderland.txt
+lines words bytes
+
+
+less Alice_in_Wonderland.txt
+1252g
+/rich and green
+/verdict 
+then press n or N
+
