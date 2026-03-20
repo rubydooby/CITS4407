@@ -45,3 +45,28 @@ less Alice_in_Wonderland.txt
 then press n or N
 
 NEW MESSAGE TEST
+
+
+Lab3
+
+docker pull mjw263/cits4407_2024
+docker run -it --mount type=bind,source="/workspaces/CITS4407",target=/home/stud/perm mjw263/cits4407_2024:v1
+cd /lab
+
+cd ~ # To navigate to your home directory 
+cd perm 
+mkdir lab3 # To store all files created in this week's lab. 
+cd lab3
+
+cp /lab/week3/* /home/stud/perm/lab3
+
+
+echo '#!/bin/bash' > myscript.sh
+
+gzip Alice_in_Wonderland.txt
+gunzip Alice_in_Wonderland.txt
+
+Unique teams
+cut -d , -f 2 arcade.csv | sort | uniq | wc -l
+unique scores
+cut -d , -f 6 arcade.csv | sort | uniq | wc -l
