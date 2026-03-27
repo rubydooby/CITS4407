@@ -1,0 +1,221 @@
+#!/usr/bin/env bash
+
+# check 4 arguments given
+if [ $# -ne 4 ]
+then
+    echo "Error: Expecting 4 arguments:<csv_file> <country_code|year> <solar_wind|coal> <min|max>"
+    exit 1
+fi
+
+# arguments
+file="$1"
+query="$2"
+energy="$3"
+operation="$4"
+
+# check file exists
+if [ ! -f "$file" ]
+then
+    echo "Error: File $file not found"
+    exit 1
+fi
+
+# check energy type
+if [ "$energy" = "solar_wind" ]
+then
+    column=4
+    energy_words="solar and wind"
+elif [ "$energy" = "coal" ]
+then
+    column=5
+    energy_words="coal"
+else
+    echo "Error: Unknown energy type $energy. Expected 'solar_wind' or 'coal'"
+    exit 1
+fi
+
+# check operation
+if [ "$operation" != "min" ] && [ "$operation" != "max" ]
+then
+    echo "Error: Unknown operations $operation. Expected 'min' or 'max'"
+    exit 1
+fi
+
+# work out if second argument is year or code
+is_year=0
+is_code=0
+
+if echo "$query" | grep -q '^[0-9][0-9][0-9][0-9]$'
+then
+    is_year=1
+elif echo "$query" | grep -q '^[A-Z][A-Z][A-Z]$'
+then
+    is_code=1
+else
+    echo "Error: Second argument must be a 4-digit year or a 3-letter country code (in CAPS)"
+    exit 1
+fi
+
+
+# if query is a year
+if [ "$is_year" -eq 1 ]
+then
+    year="$query"
+    values=""
+
+    # first pass: collect all matching values for that year
+    first_line=1
+    while IFS= read -r line
+    do
+        # skip header
+        if [ "$first_line" -eq 1 ]
+        then
+            first_line=0
+            continue
+        fi
+
+        row_year=$(echo "$line" | cut -d',' -f3)
+
+        if [ "$row_year" = "$year" ]
+        then
+            value=$(echo "$line" | cut -d',' -f"$column")
+            values="$values
+$value"
+        fi
+    done < "$file"
+
+    # remove empty first line if needed
+    values=$(echo "$values" | grep '.')
+
+    # check year exists
+    if [ -z "$values" ]
+    then
+        echo "Error: Year $year not found in data set"
+        exit 1
+    fi
+
+    # find min or max value
+    if [ "$operation" = "max" ]
+    then
+        best_value=$(echo "$values" | sort -n | tail -n 1)
+        op_word="maximum"
+    else
+        best_value=$(echo "$values" | sort -n | head -n 1)
+        op_word="minimum"
+    fi
+
+    # second pass: find country or countries with that value
+    matches=""
+    first_line=1
+    while IFS= read -r line
+    do
+        # skip header
+        if [ "$first_line" -eq 1 ]
+        then
+            first_line=0
+            continue
+        fi
+
+        row_year=$(echo "$line" | cut -d',' -f3)
+        value=$(echo "$line" | cut -d',' -f"$column")
+
+        if [ "$row_year" = "$year" ] && [ "$value" = "$best_value" ]
+        then
+            country=$(echo "$line" | cut -d',' -f1)
+            code=$(echo "$line" | cut -d',' -f2)
+
+            if [ -z "$matches" ]
+            then
+                matches="$country ($code)"
+            else
+                matches="$matches, $country ($code)"
+            fi
+        fi
+    done < "$file"
+
+    echo "The $op_word amount of electrical energy produced from $energy_words in $year was $best_value TWh by $matches"
+
+
+# if query is a country code
+else
+    code_query="$query"
+    values=""
+    country_name=""
+
+    # first pass: collect all matching values for that code
+    first_line=1
+    while IFS= read -r line
+    do
+        # skip header
+        if [ "$first_line" -eq 1 ]
+        then
+            first_line=0
+            continue
+        fi
+
+        row_code=$(echo "$line" | cut -d',' -f2)
+
+        if [ "$row_code" = "$code_query" ]
+        then
+            value=$(echo "$line" | cut -d',' -f"$column")
+            values="$values
+$value"
+
+            # save country name
+            if [ -z "$country_name" ]
+            then
+                country_name=$(echo "$line" | cut -d',' -f1)
+            fi
+        fi
+    done < "$file"
+
+    # remove empty first line if needed
+    values=$(echo "$values" | grep '.')
+
+    # check code exists
+    if [ -z "$values" ]
+    then
+        echo "Error: Country code $code_query not found in data set"
+        exit 1
+    fi
+
+    # find min or max value
+    if [ "$operation" = "max" ]
+    then
+        best_value=$(echo "$values" | sort -n | tail -n 1)
+        op_word="maximum"
+    else
+        best_value=$(echo "$values" | sort -n | head -n 1)
+        op_word="minimum"
+    fi
+
+    # second pass: find year or years with that value
+    matches=""
+    first_line=1
+    while IFS= read -r line
+    do
+        # skip header
+        if [ "$first_line" -eq 1 ]
+        then
+            first_line=0
+            continue
+        fi
+
+        row_code=$(echo "$line" | cut -d',' -f2)
+        value=$(echo "$line" | cut -d',' -f"$column")
+
+        if [ "$row_code" = "$code_query" ] && [ "$value" = "$best_value" ]
+        then
+            year=$(echo "$line" | cut -d',' -f3)
+
+            if [ -z "$matches" ]
+            then
+                matches="$year"
+            else
+                matches="$matches, $year"
+            fi
+        fi
+    done < "$file"
+
+    echo "The $op_word amount of electrical energy produced from $energy_words for $country_name ($code_query) was $best_value TWh in $matches"
+fi

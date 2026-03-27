@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+
+# data file
+file="incidenceOfMalaria.csv"
+
+# check 1 argument given
+if [ $# -ne 1 ]
+then
+    echo "Error: Only one argument should be given; Country or Year"
+    exit 1
+fi
+
+# input argument
+query="$1"
+
+# if input is all digits, it must be 4 digits
+if echo "$query" | grep -q '^[0-9][0-9]*$'
+then
+    if ! echo "$query" | grep -q '^[0-9][0-9][0-9][0-9]$'
+    then
+        echo "Error: year must be 4 digits"
+        exit 1
+    fi
+fi
+
+# check if input is a year
+if echo "$query" | grep -q '^[0-9][0-9][0-9][0-9]$'
+then
+    year="$query"
+    max=-1
+    countries=""
+
+    first_line=1
+
+    while IFS= read -r line
+    do
+        # skip header
+        if [ "$first_line" -eq 1 ]
+        then
+            first_line=0
+            continue
+        fi
+
+        # get columns
+        location=$(echo "$line" | cut -d',' -f1)
+        period=$(echo "$line" | cut -d',' -f3)
+        value=$(echo "$line" | cut -d',' -f4)
+
+        # remove bracket info
+        clean_location=$(echo "$location" | cut -d'(' -f1)
+        clean_location=${clean_location% }
+
+        # match year
+        if [ "$period" = "$year" ]
+        then
+            if [ "$value" -gt "$max" ]
+            then
+                max="$value"
+                countries="$clean_location"
+            elif [ "$value" -eq "$max" ]
+            then
+                countries="$countries, $clean_location"
+            fi
+        fi
+    done < "$file"
+
+    # invalid year if nothing matched
+    if [ "$max" -eq -1 ]
+    then
+        echo "Error: year not found"
+        exit 1
+    fi
+
+    echo "For the year $year, the highest incidence had a rate of $max per 1000, for the following countries: $countries"
+fi

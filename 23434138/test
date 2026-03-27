@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+file="incidenceOfMalaria.csv"
+year="$1"
+max=0
+countries=""
+
+while IFS= read -r line; do
+    location=$(echo "$line" | cut -d',' -f1)
+    period=$(echo "$line" | cut -d',' -f3 | tr -d '"')
+    value=$(echo "$line" | cut -d',' -f4 | tr -d '"')
+
+    clean_location=$(echo "$location" | cut -d'(' -f1 | sed 's/[[:space:]]*$//')
+
+    if [ "$period" = "$year" ]; then
+        if [ "$value" -gt "$max" ]; then
+            max="$value"
+            countries="$clean_location"
+        elif [ "$value" -eq "$max" ]; then
+            countries="$countries, $clean_location"
+        fi
+    fi
+done < <(tail -n +2 "$file")
+
+echo "Year: $year"
+echo "Max incidence: $max"
+echo "Countries: $countries"
+
